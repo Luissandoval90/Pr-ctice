@@ -1,0 +1,182 @@
+# ==========================================================
+#  PracticeMC  -  Configuracion principal
+#  Servidor: play.baltiamc.net
+#  Diseno: colores pastel (hex) via MiniMessage
+# ==========================================================
+
+servidor:
+  nombre: "<gradient:#FFD1DC:#B0E0E6><bold>BaltiaMC</bold></gradient>"
+  ip: "play.baltiamc.net"
+  discord: "discord.gg/baltiamc"
+  tienda: "store.baltiamc.net"
+
+# --- Rendimiento y actualizaciones ---
+rendimiento:
+  # Cada cuantos ticks se refresca el scoreboard (20 ticks = 1 segundo)
+  intervalo-scoreboard: 20
+  # Cada cuantos ticks se refresca el TAB (40 = 2 segundos)
+  intervalo-tab: 40
+  # Cada cuantos ticks corre el "tick" interno de partidas (10 = medio segundo)
+  intervalo-partidas: 10
+  # Cada cuantos minutos se guardan las estadisticas de forma asincrona
+  autosave-minutos: 5
+  # Limitar paquetes: solo se envian cambios reales al scoreboard
+  envio-diferencial: true
+
+# --- Lobby / Spawn ---
+lobby:
+  # Mundo del lobby (vacio = mundo por defecto)
+  mundo: ""
+  # Al entrar al servidor, teleportar al spawn
+  teleportar-al-entrar: true
+  # Dar los items del lobby
+  dar-items: true
+  # Bloquear dano, hambre, romper/colocar bloques en el lobby
+  proteccion: true
+  # Limpiar inventario y efectos al entrar
+  limpiar-al-entrar: true
+  # Fijar clima despejado y hora de dia
+  clima-despejado: true
+  hora-fija: 6000
+  # Si el jugador cae al vacio, volver al spawn
+  anti-void: true
+  # Altura minima antes de considerar "void"
+  y-minima: 0
+
+# --- Duetos ---
+duelos:
+  # Tiempo maximo para aceptar un duelo (segundos)
+  expiracion-peticion: 30
+  # Cuenta atras antes de empezar (segundos)
+  cuenta-atras: 3
+  # Rondas por defecto (1 = mejor de 1, 3 = mejor de 3)
+  rondas-por-defecto: 1
+  # Al terminar, cuanto tiempo se muestra el resumen (segundos)
+  duracion-resumen: 5
+  # Tiempo maximo de partida (minutos, 0 = sin limite)
+  limite-partida: 15
+  # Curar y dar efectos al empezar cada ronda
+  curar-al-empezar: true
+  # Avisar por Title cuando empieza
+  titulos: true
+  # Permitir duelos entre miembros de la misma party
+  permitir-duelos-internos: false
+  # Rango de ELO permitido para retar (0 = sin limite)
+  rango-elo: 0
+
+# --- ELO ---
+elo:
+  activado: true
+  inicial: 1000
+  victoria: 25
+  derrota: 20
+  bonus-racha: 5
+  minimo: 0
+  maximo: 5000
+  # Multiplicador aplicado a las partidas de rondas (mejor de 3 => x1.5)
+  multiplicador-rondas: 1.5
+
+# --- Scoreboard (sidebar) ---
+scoreboard:
+  activado: true
+  titulo: "<gradient:#FFD1DC:#C1E1C1><bold>  BALTIA  </bold></gradient>"
+  # El diseno de lineas se encuentra en messages.yml (seccion scoreboard)
+  # Modo compacto: menos lineas para clientes con poca pantalla
+  compacto: false
+
+# --- TAB ---
+tab:
+  activado: true
+  header: |
+    <gradient:#FFD1DC:#B0E0E6><bold>BALTIA MC</bold></gradient>
+    <#BFC4CC>Practice 1.21.11  <dark_gray>|  <#C1E1C1>%online% jugadores</dark_gray></#C1E1C1>
+    <#E8E8F0>play.baltiamc.net</#E8E8F0>
+  footer: |
+    <#BFC4CC>Web: <#FFD1DC>play.baltiamc.net</#FFD1DC>  <dark_gray>|  <#BFC4CC>Discord: <#B0E0E6>%discord%</#B0E0E6>
+    <#FFF5BA>Colores pastel  <dark_gray>|  <#E6D5F7>TP: %tps%</#E6D5F7>
+  # Formato del nombre en la lista de jugadores (TAB)
+  # %rank% = prefijo del rango, %name% = nombre, %elo% = elo
+  formato-nombre: "%rank%<#E8E8F0>%name%"
+  # Nametags (etiquetas sobre la cabeza) usando equipos
+  nametags: true
+  # Mostrar el kit o modo actual en el nametag del jugador en partida
+  nametag-modo: true
+
+# --- Rangos (prefix pastel) ---
+rangos:
+  # Formato: rango: { permiso, prefijo, color }
+  default:
+    permiso: ""
+    prefijo: "<#BFC4CC>Jugador"
+    color: "#BFC4CC"
+  vip:
+    permiso: "practice.vip"
+    prefijo: "<gradient:#FFD1DC:#FFF5BA>ASTRAL</gradient>"
+    color: "#FFD1DC"
+  staff:
+    permiso: "practice.staff"
+    prefijo: "<gradient:#B0E0E6:#C1E1C1>STAFF</gradient>"
+    color: "#B0E0E6"
+  admin:
+    permiso: "practice.admin"
+    prefijo: "<gradient:#FFB3BA:#E6D5F7>OWNER</gradient>"
+    color: "#FFB3BA"
+
+# --- Chat ---
+chat:
+  formato: "<#BFC4CC>%rank% <dark_gray>»</dark_gray> <#E8E8F0>%name% <dark_gray>❯</dark_gray> <white>%mensaje%"
+  # Hover con estadisticas al pasar el raton por el nombre
+  hover-stats: true
+  # Click para susurrar
+  click-susurrar: true
+  # Chat de party con el prefijo @
+  party-prefijo: "@"
+
+# --- Cola / Particion de partidas ---
+partidas:
+  # Teletransportar a espectador al morir en modo espectador en duelo
+  espectadores: true
+  # Al morir en FFA reaparecer automaticamente
+  ffa-reaparecer: true
+  # Tiempo de reaparicion en FFA (ticks)
+  ffa-respawn-ticks: 40
+  # Mensaje de muerte con diseno
+  mensajes-muerte: true
+
+# --- Items del lobby ---
+items-lobby:
+  menu:
+    material: COMPASS
+    nombre: "<gradient:#FFD1DC:#B0E0E6><bold>Menu de Practice</bold></gradient>"
+    lore:
+      - "<#BFC4CC>Click derecho para abrir</#BFC4CC>"
+      - "<#FFF5BA>✦ Duetos, Kits y FFA</#FFF5BA>"
+    slot: 4
+  stats:
+    material: BOOK
+    nombre: "<gradient:#C1E1C1:#B0E0E6><bold>Tus Estadisticas</bold></gradient>"
+    lore:
+      - "<#BFC4CC>Click para ver tu perfil</#BFC4CC>"
+      - "<#E6D5F7>✦ ELO, K/D, Rachas</#E6D5F7>"
+    slot: 2
+  party:
+    material: NETHER_STAR
+    nombre: "<gradient:#E6D5F7:#FFD1DC><bold>Party</bold></gradient>"
+    lore:
+      - "<#BFC4CC>Click para gestionar tu party</#BFC4CC>"
+      - "<#FFD1DC>✦ Juega en equipo</#FFD1DC>"
+    slot: 6
+  ffa:
+    material: DIAMOND_SWORD
+    nombre: "<gradient:#FFF5BA:#FFD1DC><bold>FFA</bold></gradient>"
+    lore:
+      - "<#BFC4CC>Click para entrar a FFA</#BFC4CC>"
+      - "<#C1E1C1>✦ Practica tu PvP</#C1E1C1>"
+    slot: 8
+
+# --- Efectos y sonidos ---
+efectos:
+  sonidos: true
+  particulas: true
+  titulos: true
+  mensaje-bienvenida: true
