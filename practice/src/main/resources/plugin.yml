@@ -1,0 +1,86 @@
+name: PracticeMC
+version: '2.0.0'
+main: com.practice.PracticePlugin
+api-version: '1.21'
+authors: [BaltiaMC]
+description: Practice 2.0 para Paper 1.21.11 - Ranked, divisiones, torneos, editor de kits, FFA, parties y HUD pastel.
+website: play.baltiamc.net
+
+commands:
+  practice:
+    description: Comando principal de administracion del Practice
+    aliases: [prac, padmin, practicemc]
+    usage: /practice <reload|setspawn|spawn|fly|elo|stats|save>
+  duel:
+    description: Retar a un jugador a un duelo
+    aliases: [duel, duelos, d]
+    usage: /duel <jugador> <kit> [rondas]
+  party:
+    description: Sistema de parties (grupos para duelo en equipo)
+    aliases: [clan, grupo, pt]
+    usage: /party <crear|invitar|aceptar|rechazar|salir|expulsar|disolver|lista|chat|duelo>
+  ffa:
+    description: Unirse a una arena FFA
+    aliases: [freeforall, allvsl]
+    usage: /ffa <arena|leave|salir>
+  kit:
+    description: Obtener un kit o administrarlos
+    aliases: [kits]
+    usage: /kit <nombre|lista|editor>
+  arena:
+    description: Administracion de arenas
+    aliases: [arenas, mapas]
+    usage: /arena <crear|pos1|pos2|spawn1|spawn2|ffa|guardar|borrar|lista|tp>
+  stats:
+    description: Ver estadisticas de un jugador
+    aliases: [estadisticas, elo, perfil]
+    usage: /stats [jugador]
+  spawn:
+    description: Volver al spawn del lobby
+    aliases: [hub, lobby]
+    usage: /spawn
+  top:
+    description: Ver los mejores jugadores
+    aliases: [leaderboard, ranking, mejores]
+    usage: /top [kills|elo|wins|streak]
+  menu:
+    description: Abrir el menu principal
+    aliases: [menus, practicemenu]
+    usage: /menu
+  spectate:
+    description: Observar una partida en curso
+    aliases: [espectar, spec]
+    usage: /spectate <jugador>
+  torneo:
+    description: Torneos de eliminacion directa
+    aliases: [tournament, evento]
+    usage: /torneo <crear|unirse|salir|empezar|info|cancelar>
+  amigo:
+    description: Lista de amigos
+    aliases: [friend, friends, amigos]
+    usage: /amigo <agregar|aceptar|rechazar|eliminar|lista>
+  historial:
+    description: Historial de partidas
+    aliases: [history, matches]
+    usage: /historial [jugador]
+  opciones:
+    description: Ajustes personales del practice
+    aliases: [settings, preferencias, ajustes]
+    usage: /opciones
+
+permissions:
+  practice.admin:
+    description: Acceso total a la administracion
+    default: op
+  practice.staff:
+    description: Acceso a herramientas de staff (fly, spectate, clearchat)
+    default: op
+  practice.play:
+    description: Acceso a las funciones de juego (duelos, kits, ffa)
+    default: true
+  practice.vip:
+    description: Rango VIP con prefijo pastel y cola prioritaria
+    default: false
+  practice.fly:
+    description: Poder volar en el lobby
+    default: op
