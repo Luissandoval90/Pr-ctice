@@ -171,6 +171,8 @@ public final class FfaManager {
                 }
                 this.plugin.messages().send(killer, "ffa.kill", "victima", victim.getName(),
                         "racha", killerSession.streak());
+                this.plugin.challenges().onFfaKill(killer);
+                killerProfile.addCoins(2);
                 if (killerSession.streak() > 0 && killerSession.streak() % 5 == 0) {
                     Bukkit.broadcast(Cc.mm(this.plugin.messages().raw("ffa.kill-streak-anuncio"),
                             "jugador", killer.getName(), "racha", killerSession.streak()));
@@ -185,6 +187,12 @@ public final class FfaManager {
         // Reaparicion programada
         int delay = this.plugin.settings().ffaRespawnTicks;
         if (this.plugin.settings().ffaRespawn) {
+            Bukkit.getScheduler().runTask(this.plugin, () -> {
+                if (victim.isOnline()) {
+                    victim.spigot().respawn();
+                    victim.setGameMode(org.bukkit.GameMode.SPECTATOR);
+                }
+            });
             Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                 if (!victim.isOnline()) {
                     this.sessions.remove(victim.getUniqueId());

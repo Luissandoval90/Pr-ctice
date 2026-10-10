@@ -62,6 +62,8 @@ public final class ProtectionListener implements Listener {
             boolean allowed = (kit != null && kit.blockBreaking()) || (arena != null && arena.buildAllowed());
             if (!allowed) {
                 event.setCancelled(true);
+            } else {
+                this.plugin.rollback().record(match.id(), event.getBlock());
             }
             return;
         }
@@ -90,6 +92,8 @@ public final class ProtectionListener implements Listener {
             } else if (arena != null && !arena.contains(event.getBlock().getLocation())) {
                 // Permitir solo dentro de la region de la arena
                 event.setCancelled(true);
+            } else if (event.getBlockReplacedState() != null) {
+                this.plugin.rollback().record(match.id(), event.getBlock(), event.getBlockReplacedState().getBlockData());
             }
             return;
         }
@@ -239,6 +243,16 @@ public final class ProtectionListener implements Listener {
         if (this.plugin.duels().inMatch(player.getUniqueId()) || this.plugin.ffa().inFfa(player.getUniqueId())) {
             return;
         }
+        if (this.plugin.profiles().profile(player).spectating()) {
+            event.setCancelled(true);
+            ItemStack held = event.getItem();
+            if (held != null && held.getType() == Material.COMPASS) {
+                this.plugin.duels().cycleSpectator(player);
+            } else if (held != null && held.getType() == Material.BARRIER) {
+                this.plugin.duels().stopSpectating(player);
+            }
+            return;
+        }
         ItemStack item = event.getItem();
         if (item == null || item.getType() == Material.AIR) {
             return;
@@ -300,6 +314,16 @@ public final class ProtectionListener implements Listener {
         double max = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
                 ? player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue() : 20.0D;
         player.setHealth(Math.min(max, player.getHealth() + 7.0D));
+        ItemStack hand = event.getItem();
+        if (hand.getAmount() <= 1) {
+            if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+                player.getInventory().setItemInOffHand(null);
+            } else {
+                player.getInventory().setItemInMainHand(null);
+            }
+        } else {
+            hand.setAmount(hand.getAmount() - 1);
+        }
         if (this.plugin.settings().sounds) {
             PlayerState.sound(player, org.bukkit.Sound.ENTITY_GENERIC_EAT, 0.7F, 1.2F);
         }

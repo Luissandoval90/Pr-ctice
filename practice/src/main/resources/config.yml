@@ -75,6 +75,35 @@ elo:
   maximo: 5000
   # Multiplicador aplicado a las partidas de rondas (mejor de 3 => x1.5)
   multiplicador-rondas: 1.5
+  # true = formula de ELO real (segun el rival). false = suma/resta fija
+  sistema-real: true
+  factor-k: 32
+
+# --- Economia, eventos y hologramas ---
+economia:
+  monedas-victoria-ranked: 15
+  monedas-victoria-normal: 10
+  monedas-derrota: 3
+
+hologramas:
+  activado: true
+  # Se rellena con /practice holo. Vacio = cerca del spawn del lobby
+  posicion: ""
+
+anuncios:
+  intervalo-minutos: 4
+  mensajes:
+    - "<#FFD1DC>play.baltiamc.net <#BFC4CC>· practice pastel"
+    - "<#B0E0E6>/duel queue nodebuff <#BFC4CC>para buscar ranked"
+    - "<#C1E1C1>/torneo unirse <#BFC4CC>si hay un evento abierto"
+    - "<#E6D5F7>Edita tu kit con <#FFD1DC>/kit editor <kit>"
+
+desafios:
+  activado: true
+
+torneos:
+  activado: true
+  premio: 100
 
 # --- Scoreboard (sidebar) ---
 scoreboard:

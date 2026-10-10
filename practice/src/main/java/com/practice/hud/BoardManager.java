@@ -119,6 +119,13 @@ public final class BoardManager {
         if (!this.plugin.settings().boardEnabled) {
             return;
         }
+        if (!this.plugin.profiles().profile(player).showBoard()) {
+            BoardData hidden = this.boards.get(player.getUniqueId());
+            if (hidden != null) {
+                hidden.objective.setDisplaySlot(null);
+            }
+            return;
+        }
         BoardData data = this.boards.get(player.getUniqueId());
         if (data == null) {
             scoreboard(player);
@@ -126,6 +133,9 @@ public final class BoardManager {
             if (data == null) {
                 return;
             }
+        }
+        if (data.objective.getDisplaySlot() != DisplaySlot.SIDEBAR) {
+            data.objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
         List<String> lines = renderLines(player, online);
         int max = Math.min(lines.size(), MAX_LINES);
@@ -184,6 +194,9 @@ public final class BoardManager {
         values.put("ping", ping);
         values.put("discord", this.plugin.settings().discord);
         values.put("ip", this.plugin.settings().serverIp);
+        values.put("division", profile.division().colored());
+        values.put("monedas", String.valueOf(profile.coins()));
+        values.put("combo", String.valueOf(profile.combo()));
 
         if (profile.spectatingId() != null) {
             DuelMatch observed = this.plugin.duels().matchById(profile.spectatingId());
@@ -197,6 +210,7 @@ public final class BoardManager {
             Player rivalPlayer = rival == null ? null : Bukkit.getPlayer(rival);
             template = this.plugin.messages().rawList("scoreboard.lineas-partida");
             values.put("estado", match.state().display());
+            values.put("modo", match.ranked() ? "Ranked" : "Normal");
             values.put("kit", match.kitName());
             values.put("arena", match.arenaName());
             values.put("rival", rival == null ? "?" : this.plugin.duels().nameOf(rival));

@@ -32,9 +32,35 @@ import java.util.UUID;
 public final class MenuManager {
 
     private final PracticePlugin plugin;
+    private final ExtraMenus extra;
 
     public MenuManager(PracticePlugin plugin) {
         this.plugin = plugin;
+        this.extra = new ExtraMenus(plugin);
+    }
+
+    public void openSettings(Player player) {
+        this.extra.openSettings(player);
+    }
+
+    public void openCosmetics(Player player) {
+        this.extra.openCosmetics(player);
+    }
+
+    public void openHistory(Player player, Player target) {
+        this.extra.openHistory(player, target);
+    }
+
+    public void openChallenges(Player player) {
+        this.extra.openChallenges(player);
+    }
+
+    public void openDivision(Player player) {
+        this.extra.openDivision(player);
+    }
+
+    public void openEditor(Player player, Kit kit) {
+        this.extra.openEditor(player, kit);
     }
 
     // ------------------------------------------------------------------
@@ -42,13 +68,13 @@ public final class MenuManager {
     // ------------------------------------------------------------------
     public void openMain(Player player) {
         MenuHolder holder = new MenuHolder("main");
-        Inventory inventory = Bukkit.createInventory(holder, 27, Cc.mm(this.plugin.messages().raw("menu.titulo-principal")));
+        Inventory inventory = Bukkit.createInventory(holder, 45, Cc.mm(this.plugin.messages().raw("menu.titulo-principal")));
         holder.inventory(inventory);
         fill(inventory, Material.LIGHT_BLUE_STAINED_GLASS_PANE);
         PlayerProfile profile = this.plugin.profiles().profile(player);
         inventory.setItem(10, new ItemBuilder(Material.DIAMOND_SWORD)
                 .name("<gradient:#FFD1DC:#B0E0E6><bold>Duelos</bold></gradient>")
-                .lore("<#BFC4CC>1v1, 2v2 y equipos",
+                .lore("<#BFC4CC>Ranked, normal y retos",
                         "<#E8E8F0>Kits: <#FFD1DC>" + this.plugin.kits().all().size(),
                         "<#BFC4CC>En cola: <#FFF5BA>" + this.plugin.queue().waitingPlayers(),
                         "",
@@ -56,31 +82,55 @@ public final class MenuManager {
                 .hideAll().build());
         inventory.setItem(12, new ItemBuilder(Material.IRON_SWORD)
                 .name("<gradient:#FFF5BA:#FFD1DC><bold>FFA</bold></gradient>")
-                .lore("<#BFC4CC>Arenas de combate libre",
-                        "<#BFC4CC>Jugadores en FFA: <#C1E1C1>" + this.plugin.ffa().total(),
-                        "",
-                        "<#C1E1C1>Click para entrar")
+                .lore("<#BFC4CC>Jugadores: <#C1E1C1>" + this.plugin.ffa().total(), "", "<#C1E1C1>Click para entrar")
                 .hideAll().build());
-        inventory.setItem(14, new ItemBuilder(Material.BOOK)
-                .name("<gradient:#E6D5F7:#B0E0E6><bold>Tus estadisticas</bold></gradient>")
-                .lore("<#BFC4CC>ELO: <#FFF5BA>" + profile.elo(),
-                        "<#BFC4CC>K/D: <#E6D5F7>" + Cc.decimal(profile.kd()),
+        inventory.setItem(14, new ItemBuilder(Material.GOLDEN_APPLE)
+                .name("<gradient:#FFF5BA:#E6D5F7><bold>Torneo</bold></gradient>")
+                .lore("<#BFC4CC>Eliminacion directa",
+                        "<#BFC4CC>Estado: <#E8E8F0>" + this.plugin.tournaments().phase().name(),
                         "",
-                        "<#C1E1C1>Click para ver el perfil")
+                        "<#C1E1C1>/torneo unirse")
                 .hideAll().build());
         inventory.setItem(16, new ItemBuilder(Material.NETHER_STAR)
                 .name("<gradient:#FFF5BA:#C1E1C1><bold>Clasificacion</bold></gradient>")
-                .lore("<#BFC4CC>Los mejores del servidor",
-                        "",
-                        "<#C1E1C1>Click para abrir")
+                .lore("<#BFC4CC>Los mejores del servidor", "", "<#C1E1C1>Click para abrir")
                 .hideAll().build());
-        inventory.setItem(22, new ItemBuilder(Material.PLAYER_HEAD)
-                .skull(player)
+        inventory.setItem(20, new ItemBuilder(Material.BOOK)
+                .name("<gradient:#E6D5F7:#B0E0E6><bold>Estadisticas</bold></gradient>")
+                .lore("<#BFC4CC>ELO: <#FFF5BA>" + profile.elo(),
+                        "<#BFC4CC>Division: " + profile.division().colored(),
+                        "<#BFC4CC>K/D: <#E6D5F7>" + Cc.decimal(profile.kd()))
+                .hideAll().build());
+        inventory.setItem(22, new ItemBuilder(Material.PLAYER_HEAD).skull(player)
                 .name("<gradient:#E6D5F7:#FFD1DC><bold>Party</bold></gradient>")
-                .lore("<#BFC4CC>Juega en equipo con amigos",
-                        "<#BFC4CC>Miembros: <#FFD1DC>" + partySize(player),
+                .lore("<#BFC4CC>Miembros: <#FFD1DC>" + partySize(player), "", "<#C1E1C1>Click para gestionar")
+                .hideAll().build());
+        inventory.setItem(24, new ItemBuilder(Material.EMERALD)
+                .name("<gradient:#C1E1C1:#B0E0E6><bold>Amigos</bold></gradient>")
+                .lore("<#BFC4CC>Conectados y peticiones", "", "<#C1E1C1>/amigo lista")
+                .hideAll().build());
+        inventory.setItem(28, new ItemBuilder(Material.WRITABLE_BOOK)
+                .name("<#B0E0E6><bold>Historial</bold>")
+                .lore("<#BFC4CC>Tus ultimas partidas", "", "<#C1E1C1>Click para ver")
+                .hideAll().build());
+        inventory.setItem(30, new ItemBuilder(Material.BLAZE_POWDER)
+                .name("<gradient:#FFD1DC:#FFF5BA><bold>Cosmeticos</bold></gradient>")
+                .lore("<#BFC4CC>Monedas: <#FFF5BA>" + profile.coins(), "", "<#C1E1C1>Click para la tienda")
+                .hideAll().build());
+        inventory.setItem(32, new ItemBuilder(Material.CLOCK)
+                .name("<gradient:#FFF5BA:#C1E1C1><bold>Desafios</bold></gradient>")
+                .lore("<#BFC4CC>Tres retos diarios", "", "<#C1E1C1>Click para ver")
+                .hideAll().build());
+        inventory.setItem(34, new ItemBuilder(Material.COMPARATOR)
+                .name("<#E6D5F7><bold>Ajustes</bold>")
+                .lore("<#BFC4CC>Scoreboard, duelos, sonidos", "", "<#C1E1C1>Click para abrir")
+                .hideAll().build());
+        inventory.setItem(40, new ItemBuilder(Material.PLAYER_HEAD).skull(player)
+                .name(profile.division().badge() + " <#E8E8F0>" + player.getName())
+                .lore("<#BFC4CC>Division: " + profile.division().colored(),
+                        "<#BFC4CC>ELO: <#FFF5BA>" + profile.elo(),
                         "",
-                        "<#C1E1C1>Click para gestionar")
+                        "<#C1E1C1>Click para ver las divisiones")
                 .hideAll().build());
         player.openInventory(inventory);
         click(player);
@@ -102,8 +152,10 @@ public final class MenuManager {
             lore.add("<dark_gray>Tipo: <#FFD1DC>" + kit.type().display());
             lore.add("<dark_gray>En cola: <#FFF5BA>" + this.plugin.queue().size(kit.name()));
             lore.add("");
-            lore.add("<#C1E1C1>Click izquierdo: buscar partida");
-            lore.add("<#B0E0E6>Click derecho: retar a un jugador");
+            lore.add("<#C1E1C1>Click: cola ranked");
+            lore.add("<#B0E0E6>Click derecho: retar");
+            lore.add("<#FFF5BA>Shift: cola normal");
+            lore.add("<#E6D5F7>Drop: editar layout");
             inventory.setItem(slots[index], new ItemBuilder(kit.icon())
                     .name(kit.displayName())
                     .lore(lore)
@@ -360,9 +412,16 @@ public final class MenuManager {
                 switch (slot) {
                     case 10 -> openKits(player);
                     case 12 -> openFfa(player);
-                    case 14 -> openStats(player, player);
+                    case 14 -> player.performCommand("torneo info");
                     case 16 -> openTop(player, Leaderboard.Type.ELO);
+                    case 20 -> openStats(player, player);
                     case 22 -> openParty(player);
+                    case 24 -> player.performCommand("amigo lista");
+                    case 28 -> openHistory(player, player);
+                    case 30 -> openCosmetics(player);
+                    case 32 -> openChallenges(player);
+                    case 34 -> openSettings(player);
+                    case 40 -> openDivision(player);
                     default -> {
                     }
                 }
@@ -378,8 +437,7 @@ public final class MenuManager {
             case "ffa" -> handleFfaClick(player, slot);
             case "party" -> handlePartyClick(player, slot, click);
             case "invite" -> handleInviteClick(player, slot, item);
-            default -> {
-            }
+            default -> this.extra.handle(player, holder, slot, click, item);
         }
     }
 
@@ -417,15 +475,19 @@ public final class MenuManager {
             return;
         }
         Kit kit = kits.get(index);
+        if (click == ClickType.DROP || click == ClickType.CONTROL_DROP) {
+            openEditor(player, kit);
+            return;
+        }
         if (click.isRightClick()) {
             openPlayers(player, kit.name());
             return;
         }
-        // Click izquierdo: entrar en la cola
+        boolean ranked = !click.isShiftClick();
         if (this.plugin.queue().queued(player.getUniqueId())) {
             this.plugin.queue().leave(player);
         }
-        String error = this.plugin.queue().join(player, kit);
+        String error = this.plugin.queue().join(player, kit, ranked);
         if (error != null) {
             this.plugin.messages().send(player, error);
             return;
@@ -577,10 +639,17 @@ public final class MenuManager {
             this.plugin.messages().send(player, "parties.llena", "max", com.practice.manager.PartyManager.MAX_SIZE);
             return;
         }
+        if (!this.plugin.profiles().profile(target).partyInvites()) {
+            this.plugin.messages().send(player, "parties.invitaciones-off", "jugador", target.getName());
+            return;
+        }
         party.invite(target.getUniqueId());
         this.plugin.messages().send(player, "parties.invitacion-enviada", "jugador", target.getName());
         this.plugin.messages().sendList(target, "parties.invitacion-recibida",
                 "duenio", this.plugin.parties().ownerName(party));
+        target.sendMessage(Cc.mm("<#C1E1C1>[Aceptar]").clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/party aceptar"))
+                .append(net.kyori.adventure.text.Component.text(" "))
+                .append(Cc.mm("<#FFB3BA>[Rechazar]").clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/party rechazar"))));
         if (this.plugin.settings().sounds) {
             target.playSound(target.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 1.8F);
         }

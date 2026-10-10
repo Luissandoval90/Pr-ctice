@@ -63,19 +63,21 @@ public final class ChatListener implements Listener {
 
         // ---------- Chat normal ----------
         Component displayName = buildName(player);
+        Component rank = Cc.mm(this.plugin.ranks().of(player).prefix());
         if (event.message().equals(Component.empty())) {
             return;
         }
         event.renderer((source, sourceDisplayName, message, viewer) -> {
             String raw = this.plugin.settings().chatFormat
-                    .replace("%rank%", "<name>")
+                    .replace("%rank%", "<rank>")
                     .replace("%name%", "<name>")
                     .replace("%mensaje%", "<msg>");
             if (raw.indexOf("<name>") < 0) {
                 raw = "<name> <dark_gray>❯</dark_gray> <msg>";
             }
             return Cc.mm(Cc.legacyToMini(raw),
-                    Placeholder.component("name", displayName),
+                    Placeholder.component("rank", rank),
+                    Placeholder.component("name", Cc.mm("<#E8E8F0>" + source.getName())),
                     Placeholder.component("msg", message));
         });
     }
@@ -87,7 +89,7 @@ public final class ChatListener implements Listener {
             PlayerProfile profile = this.plugin.profiles().profile(player);
             List<Component> lines = new ArrayList<>(7);
             lines.add(Cc.mm("<gradient:#FFD1DC:#B0E0E6><bold>" + player.getName() + "</bold></gradient>"));
-            lines.add(Cc.mm("<#BFC4CC>ELO: <#FFF5BA>" + profile.elo()));
+            lines.add(Cc.mm("<#BFC4CC>Division: " + profile.division().colored() + " <#BFC4CC>· <#FFF5BA>" + profile.elo() + " ELO"));
             lines.add(Cc.mm("<#BFC4CC>Kills: <#C1E1C1>" + profile.kills() + " <dark_gray>| <#BFC4CC>Muertes: <#FFB3BA>" + profile.deaths()));
             lines.add(Cc.mm("<#BFC4CC>K/D: <#E6D5F7>" + Cc.decimal(profile.kd())));
             lines.add(Cc.mm("<#BFC4CC>Victorias: <#C1E1C1>" + profile.wins() + " <dark_gray>| <#BFC4CC>Racha: <#FFD1DC>" + profile.streak()));

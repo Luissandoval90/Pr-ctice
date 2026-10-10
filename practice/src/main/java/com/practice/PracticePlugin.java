@@ -3,31 +3,42 @@ package com.practice;
 import com.practice.command.ArenaCommand;
 import com.practice.command.DuelCommand;
 import com.practice.command.FfaCommand;
+import com.practice.command.FriendCommand;
+import com.practice.command.HistoryCommand;
 import com.practice.command.KitCommand;
 import com.practice.command.MenuCommand;
 import com.practice.command.PartyCommand;
 import com.practice.command.PracticeCommand;
+import com.practice.command.SettingsCommand;
 import com.practice.command.SpawnCommand;
 import com.practice.command.SpectateCommand;
 import com.practice.command.StatsCommand;
 import com.practice.command.TopCommand;
+import com.practice.command.TournamentCommand;
 import com.practice.config.Messages;
 import com.practice.config.Settings;
 import com.practice.hud.BoardManager;
 import com.practice.hud.MenuManager;
 import com.practice.hud.TabManager;
 import com.practice.listener.ChatListener;
+import com.practice.listener.CombatListener;
 import com.practice.listener.MenuListener;
 import com.practice.listener.PlayerListener;
 import com.practice.listener.ProtectionListener;
 import com.practice.manager.ArenaManager;
+import com.practice.manager.ChallengeManager;
 import com.practice.manager.DuelManager;
 import com.practice.manager.FfaManager;
+import com.practice.manager.FriendManager;
+import com.practice.manager.HologramManager;
 import com.practice.manager.KitManager;
+import com.practice.manager.LayoutManager;
 import com.practice.manager.LobbyManager;
 import com.practice.manager.PartyManager;
 import com.practice.manager.ProfileManager;
 import com.practice.manager.QueueManager;
+import com.practice.manager.RollbackManager;
+import com.practice.manager.TournamentManager;
 import com.practice.util.Cc;
 import com.practice.util.Ranks;
 import org.bukkit.Bukkit;
@@ -69,6 +80,13 @@ public final class PracticePlugin extends JavaPlugin {
     private BoardManager mBoard;
     private TabManager mTab;
     private MenuManager mMenus;
+    private LayoutManager mLayouts;
+    private ChallengeManager mChallenges;
+    private TournamentManager mTournaments;
+    private FriendManager mFriends;
+    private HologramManager mHolograms;
+    private RollbackManager mRollback;
+    private int mAnnounceIndex;
 
     public static PracticePlugin get() {
         return mInstance;
@@ -94,8 +112,22 @@ public final class PracticePlugin extends JavaPlugin {
         this.mTab = new TabManager(this);
         this.mLobby = new LobbyManager(this);
         this.mMenus = new MenuManager(this);
+        this.mLayouts = new LayoutManager(this);
+        this.mChallenges = new ChallengeManager(this);
+        this.mTournaments = new TournamentManager(this);
+        this.mFriends = new FriendManager(this);
+        this.mHolograms = new HologramManager(this);
+        this.mRollback = new RollbackManager(this);
 
         reloadAll();
+        this.mHolograms.loadAnchor();
+        if (this.mSettings.holograms) {
+            try {
+                this.mHolograms.respawn();
+            } catch (RuntimeException exception) {
+                getLogger().warning("No se pudo crear el holograma: " + exception.getMessage());
+            }
+        }
 
         // Arenas por defecto para que el servidor sea jugable al instante
         if (getConfig().getBoolean("arenas.generar-por-defecto", true)) {
@@ -148,6 +180,15 @@ public final class PracticePlugin extends JavaPlugin {
         if (this.mArenas != null) {
             this.mArenas.save();
         }
+        if (this.mLayouts != null) {
+            this.mLayouts.save();
+        }
+        if (this.mHolograms != null) {
+            this.mHolograms.remove();
+        }
+        if (this.mRollback != null) {
+            this.mRollback.clear();
+        }
         getLogger().info("PracticeMC deshabilitado. Datos guardados.");
     }
 
@@ -161,6 +202,12 @@ public final class PracticePlugin extends JavaPlugin {
         this.mKits.load();
         this.mArenas.load();
         this.mLobby.load();
+        if (this.mLayouts != null) {
+            this.mLayouts.load();
+        }
+        if (this.mHolograms != null) {
+            this.mHolograms.loadAnchor();
+        }
     }
 
     private void registerCommands() {
@@ -175,6 +222,10 @@ public final class PracticePlugin extends JavaPlugin {
         register("top", new TopCommand(this));
         register("menu", new MenuCommand(this));
         register("spectate", new SpectateCommand(this));
+        register("torneo", new TournamentCommand(this));
+        register("amigo", new FriendCommand(this));
+        register("historial", new HistoryCommand(this));
+        register("opciones", new SettingsCommand(this));
     }
 
     private void register(String name, TabExecutor executor) {
@@ -192,6 +243,7 @@ public final class PracticePlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
+        getServer().getPluginManager().registerEvents(new CombatListener(this), this);
     }
 
     private void startTasks() {
@@ -211,6 +263,7 @@ public final class PracticePlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, () -> {
             this.mDuels.tick();
             this.mQueue.tick();
+            this.mTournaments.tick();
             if (this.mSettings.antiVoid) {
                 checkVoid();
             }
@@ -229,6 +282,26 @@ public final class PracticePlugin extends JavaPlugin {
                 this.mTab.updateName(player);
             }
         }, 100L, 100L);
+        long announceTicks = 20L * 60L * this.mSettings.announceMinutes;
+        getServer().getScheduler().runTaskTimer(this, this::announce, announceTicks, announceTicks);
+        getServer().getScheduler().runTaskTimer(this, () -> {
+            if (this.mSettings.holograms) {
+                this.mHolograms.update();
+            }
+        }, 200L, 600L);
+    }
+
+    private void announce() {
+        java.util.List<String> lines = getConfig().getStringList("anuncios.mensajes");
+        if (lines.isEmpty()) {
+            lines = java.util.List.of(
+                    "<#FFD1DC>play.baltiamc.net <#BFC4CC>· practice pastel",
+                    "<#B0E0E6>/duel queue <#BFC4CC>para buscar ranked",
+                    "<#C1E1C1>/torneo unirse <#BFC4CC>si hay un evento abierto");
+        }
+        String line = lines.get(this.mAnnounceIndex % lines.size());
+        this.mAnnounceIndex++;
+        Bukkit.broadcast(com.practice.util.Cc.mm("<dark_gray>[<#FFD1DC>✦</#FFD1DC>] " + line));
     }
 
     private void updateActionBars() {
@@ -335,5 +408,29 @@ public final class PracticePlugin extends JavaPlugin {
 
     public MenuManager menus() {
         return this.mMenus;
+    }
+
+    public LayoutManager layouts() {
+        return this.mLayouts;
+    }
+
+    public ChallengeManager challenges() {
+        return this.mChallenges;
+    }
+
+    public TournamentManager tournaments() {
+        return this.mTournaments;
+    }
+
+    public FriendManager friends() {
+        return this.mFriends;
+    }
+
+    public HologramManager holograms() {
+        return this.mHolograms;
+    }
+
+    public RollbackManager rollback() {
+        return this.mRollback;
     }
 }

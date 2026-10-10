@@ -96,9 +96,10 @@ public final class TabManager {
         Ranks.Rank rank = this.plugin.ranks().of(player);
         PlayerProfile profile = this.plugin.profiles().profile(player);
         String format = this.plugin.settings().tabNameFormat;
-        String value = format
+        String value = profile.division().badge() + " " + format
                 .replace("%rank%", rank.prefix())
                 .replace("%name%", player.getName())
+                .replace("%division%", profile.division().colored())
                 .replace("%elo%", String.valueOf(profile.elo()))
                 .replace("%kills%", String.valueOf(profile.kills()))
                 .replace("%ping%", String.valueOf(player.getPing()));
@@ -119,10 +120,7 @@ public final class TabManager {
     public void updateNametag(Player player) {
         Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
         Ranks.Rank rank = this.plugin.ranks().of(player);
-        String teamName = "nt_" + rank.key();
-        if (teamName.length() > 16) {
-            teamName = teamName.substring(0, 16);
-        }
+        String teamName = "p" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
         Team team = main.getTeam(teamName);
         if (team == null) {
             try {
@@ -139,8 +137,15 @@ public final class TabManager {
                 }
             }
         }
+        com.practice.model.PlayerProfile profile = this.plugin.profiles().profile(player);
         String suffix = nametagSuffix(player);
-        team.prefix(Cc.mm(Cc.legacyToMini(rank.prefix() + " <#E8E8F0>")));
+        String prefix = profile.division().badge() + " " + rank.prefix() + " <#E8E8F0>";
+        String cache = prefix + "|" + suffix;
+        if (cache.equals(profile.nametagCache()) && team.hasEntry(player.getName())) {
+            return;
+        }
+        profile.nametagCache(cache);
+        team.prefix(Cc.mm(Cc.legacyToMini(prefix)));
         team.suffix(Cc.mm(Cc.legacyToMini(suffix)));
         String entry = player.getName();
         if (team.hasEntry(entry)) {

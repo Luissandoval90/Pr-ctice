@@ -1,9 +1,9 @@
 name: PracticeMC
-version: '1.0.0'
+version: '2.0.0'
 main: com.practice.PracticePlugin
 api-version: '1.21'
 authors: [BaltiaMC]
-description: Practice completo para Paper 1.21.11 - Duels, Kits, ELO, FFA, Parties, Scoreboard y TAB pastel.
+description: Practice 2.0 para Paper 1.21.11 - Ranked, divisiones, torneos, editor de kits, FFA, parties y HUD pastel.
 website: play.baltiamc.net
 
 commands:
@@ -51,6 +51,22 @@ commands:
     description: Observar una partida en curso
     aliases: [espectar, spec]
     usage: /spectate <jugador>
+  torneo:
+    description: Torneos de eliminacion directa
+    aliases: [tournament, evento]
+    usage: /torneo <crear|unirse|salir|empezar|info|cancelar>
+  amigo:
+    description: Lista de amigos
+    aliases: [friend, friends, amigos]
+    usage: /amigo <agregar|aceptar|rechazar|eliminar|lista>
+  historial:
+    description: Historial de partidas
+    aliases: [history, matches]
+    usage: /historial [jugador]
+  opciones:
+    description: Ajustes personales del practice
+    aliases: [settings, preferencias, ajustes]
+    usage: /opciones
 
 permissions:
   practice.admin:

@@ -32,6 +32,8 @@ public final class DuelMatch {
     private long endedAt;
     private UUID winnerTeamPlayer;
     private int winningTeam = -1;
+    private boolean ranked = true;
+    private String tournamentId;
 
     public DuelMatch(String id, MatchType type, String kitName, String arenaName, int totalRounds) {
         this.id = id;
@@ -140,6 +142,22 @@ public final class DuelMatch {
 
     public void winnerPlayer(UUID uuid) {
         this.winnerTeamPlayer = uuid;
+    }
+
+    public boolean ranked() {
+        return this.ranked;
+    }
+
+    public void ranked(boolean value) {
+        this.ranked = value;
+    }
+
+    public String tournamentId() {
+        return this.tournamentId;
+    }
+
+    public void tournamentId(String value) {
+        this.tournamentId = value;
     }
 
     /** Agrega un equipo a la partida. */

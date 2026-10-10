@@ -46,6 +46,8 @@ public final class PlayerListener implements Listener {
             this.plugin.lobby().sendToLobby(player);
         }
         this.plugin.lobby().welcome(player);
+        this.plugin.friends().announceJoin(player);
+        this.plugin.challenges().ensure(this.plugin.profiles().profile(player));
         this.plugin.board().update(player);
         if (this.plugin.settings().welcomeMessage) {
             Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
@@ -137,6 +139,7 @@ public final class PlayerListener implements Listener {
         Player player = event.getPlayer();
         this.plugin.duels().leave(player, true);
         this.plugin.queue().leave(player);
+        this.plugin.tournaments().eliminate(player.getUniqueId());
     }
 
     /** Anuncio de entrada con el diseno pastel del servidor. */

@@ -65,6 +65,10 @@ public final class PartyCommand extends BaseCommand {
                     send(sender, "parties.llena", "max", com.practice.manager.PartyManager.MAX_SIZE);
                     return true;
                 }
+                if (!this.plugin.profiles().profile(target).partyInvites()) {
+                    send(sender, "parties.invitaciones-off", "jugador", target.getName());
+                    return true;
+                }
                 if (!party.invite(target.getUniqueId())) {
                     send(sender, "parties.ya-en-party");
                     return true;
@@ -72,6 +76,9 @@ public final class PartyCommand extends BaseCommand {
                 send(sender, "parties.invitacion-enviada", "jugador", target.getName());
                 this.plugin.messages().sendList(target, "parties.invitacion-recibida", "duenio",
                         this.plugin.parties().ownerName(party));
+                target.sendMessage(com.practice.util.Cc.mm("<#C1E1C1>[Aceptar]").clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/party aceptar"))
+                        .append(net.kyori.adventure.text.Component.text(" "))
+                        .append(com.practice.util.Cc.mm("<#FFB3BA>[Rechazar]").clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/party rechazar"))));
             }
             case "aceptar", "accept", "unir" -> {
                 if (party != null) {

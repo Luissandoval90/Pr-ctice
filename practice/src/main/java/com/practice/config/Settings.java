@@ -57,6 +57,18 @@ public final class Settings {
     public int eloMin;
     public int eloMax;
     public double eloRoundsMultiplier;
+    public boolean eloReal;
+    public int eloK;
+
+    // Economia, eventos y HUD v2
+    public int coinsWinRanked;
+    public int coinsWinUnranked;
+    public int coinsLoss;
+    public boolean holograms;
+    public int announceMinutes;
+    public boolean challengesEnabled;
+    public boolean tournamentsEnabled;
+    public int tournamentPrize;
 
     // Scoreboard
     public boolean boardEnabled;
@@ -135,6 +147,17 @@ public final class Settings {
         this.eloMin = c.getInt("elo.minimo", 0);
         this.eloMax = c.getInt("elo.maximo", 5000);
         this.eloRoundsMultiplier = c.getDouble("elo.multiplicador-rondas", 1.5D);
+        this.eloReal = c.getBoolean("elo.sistema-real", true);
+        this.eloK = Math.max(8, c.getInt("elo.factor-k", 32));
+
+        this.coinsWinRanked = c.getInt("economia.monedas-victoria-ranked", 15);
+        this.coinsWinUnranked = c.getInt("economia.monedas-victoria-normal", 10);
+        this.coinsLoss = c.getInt("economia.monedas-derrota", 3);
+        this.holograms = c.getBoolean("hologramas.activado", true);
+        this.announceMinutes = Math.max(1, c.getInt("anuncios.intervalo-minutos", 4));
+        this.challengesEnabled = c.getBoolean("desafios.activado", true);
+        this.tournamentsEnabled = c.getBoolean("torneos.activado", true);
+        this.tournamentPrize = c.getInt("torneos.premio", 100);
 
         this.boardEnabled = c.getBoolean("scoreboard.activado", true);
         this.boardTitle = c.getString("scoreboard.titulo", "<gradient:#FFD1DC:#C1E1C1><bold>  BALTIA  </bold></gradient>");

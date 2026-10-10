@@ -20,7 +20,7 @@ import java.util.List;
 public final class DuelCommand extends BaseCommand {
 
     private static final List<String> SUBS = List.of("aceptar", "rechazar", "queue", "cola", "dejar", "salir",
-            "espectar", "info");
+            "espectar", "info", "revanche", "ranked");
 
     public DuelCommand(PracticePlugin plugin) {
         super(plugin);
@@ -38,6 +38,23 @@ public final class DuelCommand extends BaseCommand {
         }
         switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "aceptar", "accept" -> this.plugin.duels().accept(player);
+            case "revanche", "revancha" -> {
+                var profile = this.plugin.profiles().profile(player);
+                if (profile.lastOpponent() == null || profile.lastKit() == null) {
+                    send(sender, "duelos.sin-revanche");
+                    return true;
+                }
+                Player target = org.bukkit.Bukkit.getPlayer(profile.lastOpponent());
+                Kit kit = kit(profile.lastKit());
+                if (target == null || kit == null) {
+                    send(sender, "generales.jugador-desconocido");
+                    return true;
+                }
+                String error = this.plugin.duels().request(player, target, kit, profile.lastRounds());
+                if (error != null) {
+                    send(sender, error);
+                }
+            }
             case "rechazar", "deny" -> this.plugin.duels().deny(player);
             case "queue", "cola" -> {
                 if (args.length < 2) {
@@ -52,7 +69,8 @@ public final class DuelCommand extends BaseCommand {
                 if (this.plugin.queue().queued(player.getUniqueId())) {
                     this.plugin.queue().leave(player);
                 }
-                String error = this.plugin.queue().join(player, kit);
+                boolean ranked = args.length < 3 || !args[2].equalsIgnoreCase("normal");
+                String error = this.plugin.queue().join(player, kit, ranked);
                 if (error != null) {
                     send(sender, error);
                 }

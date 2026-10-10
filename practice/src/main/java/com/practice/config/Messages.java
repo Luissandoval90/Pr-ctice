@@ -59,6 +59,15 @@ public final class Messages {
         if (configuredPrefix != null) {
             this.prefix = configuredPrefix;
         }
+        // Claves nuevas del jar que el messages.yml del servidor todavia no tiene
+        if (config.getDefaults() != null) {
+            for (String key : config.getDefaults().getKeys(true)) {
+                if (config.getDefaults().isConfigurationSection(key) || this.values.containsKey(key)) {
+                    continue;
+                }
+                this.values.put(key, config.getDefaults().get(key));
+            }
+        }
     }
 
     public String prefix() {

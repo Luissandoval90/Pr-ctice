@@ -9,10 +9,18 @@ import com.practice.model.Kit;
 import com.practice.model.MatchType;
 import com.practice.model.Party;
 import com.practice.model.PlayerProfile;
+import com.practice.listener.CombatListener;
+import com.practice.model.Division;
+import com.practice.model.MatchRecord;
 import com.practice.util.Cc;
+import com.practice.util.Elo;
 import com.practice.util.PlayerState;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -43,6 +51,7 @@ public final class DuelManager {
     private final Map<UUID, DuelRequest> pending = new LinkedHashMap<>(32);
     private final Map<String, Long> roundEndsAt = new LinkedHashMap<>(32);
     private final Map<String, Long> finishAt = new LinkedHashMap<>(32);
+    private final Map<String, BossBar> bars = new LinkedHashMap<>(32);
 
     public DuelManager(PracticePlugin plugin) {
         this.plugin = plugin;
@@ -83,6 +92,13 @@ public final class DuelManager {
         if (kit == null) {
             return "kits.no-existe";
         }
+        if (!this.plugin.profiles().profile(target).duelRequests()) {
+            return "duelos.peticiones-off";
+        }
+        if (this.plugin.tournaments().active() && this.plugin.tournaments().phase() == com.practice.manager.TournamentManager.Phase.RUNNING
+                && (this.plugin.tournaments().contains(challenger.getUniqueId()) || this.plugin.tournaments().contains(target.getUniqueId()))) {
+            return "torneos.en-torneo";
+        }
         if (this.plugin.settings().eloRange > 0 && this.plugin.settings().eloEnabled) {
             PlayerProfile first = this.plugin.profiles().profile(challenger);
             PlayerProfile second = this.plugin.profiles().profile(target);
@@ -98,6 +114,9 @@ public final class DuelManager {
         this.plugin.messages().send(challenger, "duelos.peticion-enviada", "objetivo", target.getName(), "kit", kit.name());
         this.plugin.messages().sendList(target, "duelos.peticion-recibida",
                 "retador", challenger.getName(), "kit", kit.name());
+        target.sendMessage(Cc.mm("<#C1E1C1>[Aceptar]").clickEvent(ClickEvent.runCommand("/duel aceptar"))
+                .append(Component.text(" "))
+                .append(Cc.mm("<#FFB3BA>[Rechazar]").clickEvent(ClickEvent.runCommand("/duel rechazar"))));
         if (this.plugin.settings().sounds) {
             PlayerState.sound(target, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 1.6F);
         }
@@ -154,6 +173,10 @@ public final class DuelManager {
     //  Ciclo de vida de las partidas
     // ------------------------------------------------------------------
     public boolean startMatch(MatchType type, Kit kit, List<List<UUID>> teams, int rounds) {
+        return startMatch(type, kit, teams, rounds, true, null);
+    }
+
+    public boolean startMatch(MatchType type, Kit kit, List<List<UUID>> teams, int rounds, boolean ranked, String tournamentId) {
         if (teams.size() < 2) {
             return false;
         }
@@ -173,9 +196,14 @@ public final class DuelManager {
         String id = UUID.randomUUID().toString().substring(0, 8);
         int totalRounds = rounds <= 0 ? this.plugin.settings().defaultRounds : rounds;
         DuelMatch match = new DuelMatch(id, type, kit.name(), arena.name(), totalRounds);
+        match.ranked(ranked && tournamentId == null);
+        match.tournamentId(tournamentId);
         for (List<UUID> team : teams) {
             match.addTeam(team);
         }
+        BossBar bar = Bukkit.createBossBar("Practice", BarColor.PINK, BarStyle.SOLID);
+        bar.setProgress(1.0D);
+        this.bars.put(id, bar);
         arena.inUse(true);
         this.matches.put(id, match);
         for (UUID uuid : match.allPlayers()) {
@@ -216,7 +244,12 @@ public final class DuelManager {
                         : offset(arena.spawn2(), spawnIndex[1]++);
                 PlayerState.lobby(player);
                 this.plugin.lobby().sendToMatch(player, kit);
+                this.plugin.layouts().apply(player, kit);
                 PlayerState.teleport(player, location);
+                BossBar bar = this.bars.get(match.id());
+                if (bar != null) {
+                    bar.addPlayer(player);
+                }
                 player.setInvulnerable(true);
                 player.setWalkSpeed(0.0F);
                 player.setFlySpeed(0.0F);
@@ -296,6 +329,8 @@ public final class DuelManager {
             killerProfile.addKill();
             int[] record = killerProfile.kitRecord(match.kitName());
             record[2]++;
+            CombatListener.killEffect(this.plugin, killer, victim);
+            this.plugin.challenges().onKill(killer);
         }
         match.markDead(victim.getUniqueId());
         if (this.plugin.settings().sounds) {
@@ -388,7 +423,23 @@ public final class DuelManager {
             match.winnerPlayer(match.team(winnerTeam).get(0));
         }
 
-        boolean ranked = this.plugin.settings().eloEnabled && match.type() != MatchType.FFA;
+        boolean ranked = match.ranked() && this.plugin.settings().eloEnabled && match.type() != MatchType.FFA;
+        int[] teamElo = new int[]{this.plugin.settings().eloStart, this.plugin.settings().eloStart};
+        for (int teamIndex = 0; teamIndex < Math.min(2, match.teams().size()); teamIndex++) {
+            int sum = 0;
+            int count = 0;
+            for (UUID uuid : match.team(teamIndex)) {
+                Player online = Bukkit.getPlayer(uuid);
+                PlayerProfile rated = online != null
+                        ? this.plugin.profiles().profile(online)
+                        : this.plugin.profiles().profileOrCreate(uuid, nameOf(uuid));
+                sum += rated.elo();
+                count++;
+            }
+            if (count > 0) {
+                teamElo[teamIndex] = sum / count;
+            }
+        }
         for (int teamIndex = 0; teamIndex < match.teams().size(); teamIndex++) {
             for (UUID uuid : match.team(teamIndex)) {
                 Player player = Bukkit.getPlayer(uuid);
@@ -404,17 +455,41 @@ public final class DuelManager {
                 }
                 boolean won = teamIndex == winnerTeam;
                 int before = profile.elo();
+                Division beforeDivision = Division.of(before);
                 int delta = 0;
                 if (ranked) {
                     double multiplier = match.totalRounds() > 1 ? this.plugin.settings().eloRoundsMultiplier : 1.0D;
-                    if (won) {
+                    int opponentElo = teamElo[teamIndex == 0 ? 1 : 0];
+                    if (this.plugin.settings().eloReal) {
+                        delta = Elo.change(before, opponentElo, won, this.plugin.settings().eloK, multiplier);
+                        if (won && profile.streak() >= 3) {
+                            delta += this.plugin.settings().eloStreakBonus;
+                        }
+                    } else if (won) {
                         int bonus = profile.streak() >= 3 ? this.plugin.settings().eloStreakBonus : 0;
                         delta = (int) Math.round((this.plugin.settings().eloWin + bonus) * multiplier);
-                        profile.elo(clamp(profile.elo() + delta));
                     } else {
-                        delta = (int) Math.round(this.plugin.settings().eloLoss * multiplier);
-                        profile.elo(clamp(profile.elo() - delta));
+                        delta = -(int) Math.round(this.plugin.settings().eloLoss * multiplier);
                     }
+                    profile.elo(clamp(before + delta));
+                }
+                int coins = won
+                        ? (ranked ? this.plugin.settings().coinsWinRanked : this.plugin.settings().coinsWinUnranked)
+                        : this.plugin.settings().coinsLoss;
+                profile.addCoins(coins);
+                if (won) {
+                    profile.seasonWins(profile.seasonWins() + 1);
+                } else if (winnerTeam >= 0) {
+                    profile.seasonLosses(profile.seasonLosses() + 1);
+                }
+                UUID opponent = match.firstOpponent(uuid);
+                profile.addHistory(new MatchRecord(System.currentTimeMillis(), nameOf(opponent), match.kitName(),
+                        won, delta, ranked, match.scoreLine()));
+                if (opponent != null && match.type() == MatchType.SOLO) {
+                    profile.lastOpponent(opponent);
+                    profile.lastKit(match.kitName());
+                    profile.lastRounds(match.totalRounds());
+                    profile.lastRanked(ranked);
                 }
                 if (won) {
                     profile.addWin();
@@ -430,6 +505,24 @@ public final class DuelManager {
                 }
                 if (player != null) {
                     sendSummary(player, match, profile, won, before, delta, ranked);
+                    Division after = profile.division();
+                    if (after != beforeDivision) {
+                        boolean up = after.ordinal() > beforeDivision.ordinal();
+                        player.sendMessage(Cc.mm(up
+                                ? "<#C1E1C1>Subiste a " + after.colored()
+                                : "<#FFB3BA>Bajaste a " + after.colored()));
+                        if (up && after.ordinal() >= Division.DIAMANTE.ordinal()) {
+                            Bukkit.broadcast(Cc.mm("<#FFF5BA>✦ <#E8E8F0>" + player.getName()
+                                    + " <#BFC4CC>alcanzo la division " + after.colored()));
+                        }
+                    }
+                    if (match.tournamentId() == null && match.type() == MatchType.SOLO) {
+                        player.sendMessage(Cc.mm("<#B0E0E6>[Revanche]").clickEvent(ClickEvent.runCommand("/duel revanche")));
+                    }
+                    this.plugin.challenges().onMatch(player, won, ranked);
+                    if (won) {
+                        this.plugin.challenges().onStreak(player, profile.streak());
+                    }
                 }
             }
         }
@@ -442,8 +535,12 @@ public final class DuelManager {
                 if (player != null) {
                     player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 30, 0.4D, 0.8D, 0.4D, 0.02D);
                     player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation().add(0, 1, 0), 20, 0.5D, 1.0D, 0.5D, 0.0D);
+                    CombatListener.winEffect(this.plugin, player);
                 }
             }
+        }
+        if (match.tournamentId() != null) {
+            Bukkit.getScheduler().runTask(this.plugin, () -> this.plugin.tournaments().onMatchEnd(match));
         }
 
         int summary = this.plugin.settings().summarySeconds;
@@ -466,9 +563,11 @@ public final class DuelManager {
                         "antes", before, "despues", profile.elo(), "cambio", delta));
             } else {
                 player.sendMessage(Cc.mm(this.plugin.messages().raw("duelos.elo-perdido"),
-                        "antes", before, "despues", profile.elo(), "cambio", delta));
+                        "antes", before, "despues", profile.elo(), "cambio", Math.abs(delta)));
             }
         }
+        player.sendMessage(Cc.mm("<#BFC4CC>Division: " + profile.division().colored()
+                + " <dark_gray>| <#BFC4CC>Monedas: <#E6D5F7>" + profile.coins()));
         player.sendMessage(Cc.mm("<#BFC4CC>Kills: <#C1E1C1>" + profile.kills()
                 + " <dark_gray>| <#BFC4CC>Muertes: <#FFB3BA>" + profile.deaths()
                 + " <dark_gray>| <#BFC4CC>Racha: <#FFD1DC>" + profile.streak()));
@@ -534,6 +633,15 @@ public final class DuelManager {
         if (match == null) {
             return;
         }
+        if (!spectator.hasPermission("practice.staff")) {
+            for (UUID uuid : match.allPlayers()) {
+                PlayerProfile watched = this.plugin.profiles().profile(uuid);
+                if (watched != null && !watched.allowSpectators()) {
+                    this.plugin.messages().send(spectator, "duelos.espectadores-off");
+                    return;
+                }
+            }
+        }
         Arena arena = this.plugin.arenas().get(match.arenaName());
         if (arena == null) {
             return;
@@ -542,6 +650,10 @@ public final class DuelManager {
         spectator.setGameMode(GameMode.SPECTATOR);
         PlayerState.teleport(spectator, arena.spectator() == null ? arena.center() : arena.spectator());
         match.addSpectator(spectator.getUniqueId());
+        spectator.getInventory().setItem(0, new com.practice.util.ItemBuilder(org.bukkit.Material.COMPASS)
+                .name("<#B0E0E6>Siguiente jugador").lore("<#BFC4CC>Click para cambiar de jugador").build());
+        spectator.getInventory().setItem(8, new com.practice.util.ItemBuilder(org.bukkit.Material.BARRIER)
+                .name("<#FFB3BA>Salir").lore("<#BFC4CC>Volver al lobby").build());
         PlayerProfile profile = this.plugin.profiles().profile(spectator);
         profile.spectatingId(match.id());
         this.plugin.messages().send(spectator, "duelos.espectador-unido",
@@ -592,11 +704,13 @@ public final class DuelManager {
         for (DuelMatch match : this.matches.values()) {
             switch (match.state()) {
                 case COUNTDOWN -> {
+                    refreshBar(match, "Cuenta atras");
                     if (now >= match.countdownEndsAt()) {
                         beginFight(match);
                     }
                 }
                 case FIGHTING -> {
+                    refreshBar(match, "En combate");
                     int limit = this.plugin.settings().matchLimitMinutes;
                     if (limit > 0 && match.duration() > limit * 60000L) {
                         int winner = match.scores()[0] == match.scores()[1] ? -2 : (match.scores()[0] > match.scores()[1] ? 0 : 1);
@@ -628,6 +742,11 @@ public final class DuelManager {
     private void finalizeMatch(DuelMatch match) {
         this.matches.remove(match.id());
         this.finishAt.remove(match.id());
+        BossBar bar = this.bars.remove(match.id());
+        if (bar != null) {
+            bar.removeAll();
+        }
+        this.plugin.rollback().restore(match.id());
         Arena arena = this.plugin.arenas().get(match.arenaName());
         if (arena != null) {
             arena.lastWinner(nameOf(match.winnerPlayer()));
@@ -702,10 +821,48 @@ public final class DuelManager {
     }
 
     public void clear() {
+        for (BossBar bar : this.bars.values()) {
+            bar.removeAll();
+        }
+        this.bars.clear();
         this.matches.clear();
         this.byPlayer.clear();
         this.pending.clear();
         this.roundEndsAt.clear();
         this.finishAt.clear();
+    }
+
+    private void refreshBar(DuelMatch match, String state) {
+        BossBar bar = this.bars.get(match.id());
+        if (bar == null) {
+            return;
+        }
+        String title = state + "  |  " + match.kitName() + "  |  " + match.scoreLine()
+                + (match.ranked() ? "  |  Ranked" : "");
+        if (!title.equals(bar.getTitle())) {
+            bar.setTitle(title);
+        }
+        int needed = Math.max(1, match.neededWins());
+        double progress = Math.max(0.05D, Math.min(1.0D, (match.scores()[0] + match.scores()[1]) / (double) (needed * 2)));
+        if (Math.abs(bar.getProgress() - progress) > 0.01D) {
+            bar.setProgress(progress);
+        }
+    }
+
+    /** Salta al siguiente jugador vivo de la partida observada. */
+    public void cycleSpectator(Player spectator) {
+        PlayerProfile profile = this.plugin.profiles().profile(spectator);
+        DuelMatch match = profile.spectatingId() == null ? null : this.matches.get(profile.spectatingId());
+        if (match == null) {
+            return;
+        }
+        List<UUID> alive = new ArrayList<>(match.alive());
+        if (alive.isEmpty()) {
+            return;
+        }
+        Player target = Bukkit.getPlayer(alive.get((int) (System.currentTimeMillis() / 1000L % alive.size())));
+        if (target != null) {
+            spectator.teleport(target.getLocation());
+        }
     }
 }

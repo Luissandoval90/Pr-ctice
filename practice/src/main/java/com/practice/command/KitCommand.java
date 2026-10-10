@@ -37,7 +37,18 @@ public final class KitCommand extends BaseCommand {
         }
         String sub = args[0].toLowerCase(java.util.Locale.ROOT);
         switch (sub) {
-            case "editor", "menu" -> this.plugin.menus().openKits(player);
+            case "editor", "menu" -> {
+                if (args.length >= 2) {
+                    Kit editing = kit(args[1]);
+                    if (editing == null) {
+                        send(sender, "kits.no-existe", "kit", args[1]);
+                        return true;
+                    }
+                    this.plugin.menus().openEditor(player, editing);
+                } else {
+                    this.plugin.menus().openKits(player);
+                }
+            }
             case "crear" -> {
                 if (!hasPermission(sender, "practice.admin")) {
                     return true;

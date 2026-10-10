@@ -36,14 +36,16 @@ public final class QueueManager {
         private final MatchType type;
         private final long joinedAt;
         private final int averageElo;
+        private final boolean ranked;
 
-        Entry(UUID leader, List<UUID> members, String kit, MatchType type, int averageElo) {
+        Entry(UUID leader, List<UUID> members, String kit, MatchType type, int averageElo, boolean ranked) {
             this.leader = leader;
             this.members = members;
             this.kit = kit;
             this.type = type;
             this.joinedAt = System.currentTimeMillis();
             this.averageElo = averageElo;
+            this.ranked = ranked;
         }
 
         public UUID leader() {
@@ -68,6 +70,10 @@ public final class QueueManager {
 
         public int averageElo() {
             return this.averageElo;
+        }
+
+        public boolean ranked() {
+            return this.ranked;
         }
 
         public int size() {
@@ -123,8 +129,12 @@ public final class QueueManager {
         return total;
     }
 
-    /** Mete al jugador (y su party si aplica) en la cola del kit. */
     public String join(Player player, Kit kit) {
+        return join(player, kit, true);
+    }
+
+    /** Mete al jugador (y su party si aplica) en la cola del kit. */
+    public String join(Player player, Kit kit, boolean ranked) {
         if (kit == null) {
             return "kits.no-existe";
         }
@@ -164,7 +174,7 @@ public final class QueueManager {
             averageElo += profile.elo();
         }
         averageElo = averageElo / members.size();
-        Entry entry = new Entry(player.getUniqueId(), members, kit.name(), kit.type(), averageElo);
+        Entry entry = new Entry(player.getUniqueId(), members, kit.name(), kit.type(), averageElo, ranked);
         this.queues.computeIfAbsent(kit.name(), key -> new ArrayList<>(16)).add(entry);
         for (UUID uuid : members) {
             this.byPlayer.put(uuid, entry);
@@ -218,10 +228,10 @@ public final class QueueManager {
             Entry partner = null;
             for (int i = 1; i < list.size(); i++) {
                 Entry candidate = list.get(i);
-                if (candidate.size() != first.size()) {
+                if (candidate.size() != first.size() || candidate.ranked() != first.ranked()) {
                     continue;
                 }
-                if (Math.abs(candidate.averageElo() - first.averageElo()) > maxDifference()) {
+                if (first.ranked() && Math.abs(candidate.averageElo() - first.averageElo()) > maxDifference()) {
                     continue;
                 }
                 partner = candidate;
@@ -259,7 +269,8 @@ public final class QueueManager {
                 }
             }
             boolean started = this.plugin.duels().startMatch(type, kit, teams,
-                    kit.maxRounds() > 0 ? kit.maxRounds() : this.plugin.settings().defaultRounds);
+                    kit.maxRounds() > 0 ? kit.maxRounds() : this.plugin.settings().defaultRounds,
+                    first.ranked(), null);
             if (!started) {
                 // devolver a la cola si no hay arena
                 this.queues.computeIfAbsent(first.kit(), key -> new ArrayList<>(16)).add(first);

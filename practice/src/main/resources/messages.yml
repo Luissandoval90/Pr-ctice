@@ -68,6 +68,9 @@ duelos:
   no-arena: "<#FFB3BA>No hay arenas disponibles para ese kit. Avisa al staff."
   no-arena-tipo: "<#FFB3BA>No hay arenas de tipo <#FFD1DC>%tipo%</#FFB3BA> disponibles."
   rango-elo: "<#FFB3BA>La diferencia de ELO es demasiado grande (<#FFF5BA>%diferencia%</#FFF5BA>)."
+  peticiones-off: "<#FFB3BA>Ese jugador no acepta retos ahora mismo."
+  espectadores-off: "<#FFB3BA>Esa partida no permite espectadores."
+  sin-revanche: "<#FFB3BA>No tienes una revanche disponible."
   cuenta-atras: "<#FFF5BA>La partida comienza en <#FFD1DC>%tiempo%</#FFF5BA>..."
   empezado-titulo: "<gradient:#C1E1C1:#B0E0E6><bold>¡PELEA!</bold></gradient>"
   empezado-subtitulo: "<#E8E8F0>%kit% <dark_gray>| <#BFC4CC>vs %rival%"
@@ -111,6 +114,7 @@ parties:
   disuelta: "<#FFB3BA>La party ha sido disuelta."
   solo-duenio: "<#FFB3BA>Solo el lider de la party puede hacer eso."
   llena: "<#FFB3BA>La party esta llena (maximo %max% jugadores)."
+  invitaciones-off: "<#FFB3BA>%jugador% no acepta invitaciones de party."
   lista-header: "<gradient:#E6D5F7:#FFD1DC><bold>Party de %duenio%</bold></gradient>"
   lista-miembro: "<#BFC4CC>• <#E8E8F0>%nombre% <dark_gray>(%elo% ELO)"
   chat: "<gradient:#E6D5F7:#FFD1DC>[Party]</gradient> <#E8E8F0>%jugador% <dark_gray>❯</dark_gray> <white>%mensaje%"
@@ -145,6 +149,40 @@ arenas:
   estado-uso: "<#FFB3BA>en partida"
   estado-deshabilitada: "<#BFC4CC>deshabilitada"
 
+amigos:
+  enviada: "<#C1E1C1>Peticion de amistad enviada a <#FFD1DC>%jugador%<#C1E1C1>."
+  aceptada: "<#C1E1C1>%jugador% <#C1E1C1>y tu ahora sois amigos."
+  rechazada: "<#FFB3BA>Has rechazado la peticion de amistad."
+  sin-peticion: "<#FFB3BA>No tienes peticiones de amistad."
+  ya-amigos: "<#FFB3BA>Ya eres amigo de <#FFD1DC>%jugador%<#FFB3BA>."
+  eliminado: "<#BFC4CC>Has eliminado a <#FFD1DC>%jugador% <#BFC4CC>de tus amigos."
+  vacio: "<#FFB3BA>Todavia no tienes amigos. Usa <#FFD1DC>/amigo agregar <jugador>"
+  no-propio: "<#FFB3BA>No puedes agregarte a ti mismo."
+
+torneos:
+  desactivado: "<#FFB3BA>Los torneos estan desactivados."
+  ya-activo: "<#FFB3BA>Ya hay un torneo en curso."
+  no-abierto: "<#FFB3BA>No hay un torneo abierto. Crea uno con <#FFD1DC>/torneo crear <kit>"
+  ya-unido: "<#FFB3BA>Ya estas en el torneo."
+  lleno: "<#FFB3BA>El torneo esta lleno."
+  no-unido: "<#FFB3BA>No estas en el torneo."
+  saliste: "<#BFC4CC>Has salido del torneo."
+  solo-host: "<#FFB3BA>Solo el anfitrion puede hacer eso."
+  pocos: "<#FFB3BA>Hacen falta al menos 2 jugadores."
+  bye: "<#C1E1C1>Te toco un bye: pasas de ronda."
+  en-torneo: "<#FFB3BA>Ese jugador esta en un torneo."
+
+editor:
+  guardado: "<#C1E1C1>Layout de <#FFD1DC>%kit% <#C1E1C1>guardado."
+  restablecido: "<#BFC4CC>Layout de <#FFD1DC>%kit% <#BFC4CC>restablecido."
+
+economia:
+  sin-monedas: "<#FFB3BA>Te faltan monedas. Cuesta <#FFF5BA>%precio%<#FFB3BA>."
+  comprado: "<#C1E1C1>Has comprado <#FFD1DC>%nombre% <#C1E1C1>por <#FFF5BA>%precio% <#C1E1C1>monedas."
+
+historial:
+  vacio: "<#FFB3BA>Ese jugador no tiene partidas registradas."
+
 menu:
   titulo-principal: "<gradient:#FFD1DC:#B0E0E6><bold>Menu de Practice</bold></gradient>"
   titulo-kits: "<gradient:#C1E1C1:#B0E0E6><bold>Selecciona un Kit</bold></gradient>"
@@ -161,10 +199,9 @@ scoreboard:
     - "<#BFC4CC>Jugador:"
     - " <#FFD1DC>%jugador%"
     - ""
-    - "<#BFC4CC>ELO: <#FFF5BA>%elo%"
-    - "<#BFC4CC>Kills: <#C1E1C1>%kills% <dark_gray>| <#BFC4CC>Muertes: <#FFB3BA>%muertes%"
-    - "<#BFC4CC>K/D: <#E6D5F7>%kd%"
-    - "<#BFC4CC>Racha: <#FFD1DC>%racha%"
+    - "<#BFC4CC>Division: %division%"
+    - "<#BFC4CC>ELO: <#FFF5BA>%elo% <#BFC4CC>Monedas: <#E6D5F7>%monedas%"
+    - "<#BFC4CC>K/D: <#E6D5F7>%kd% <dark_gray>| <#BFC4CC>Racha: <#FFD1DC>%racha%"
     - ""
     - "<#BFC4CC>Online: <#B0E0E6>%online%"
     - "<#BFC4CC>Ping: <#C1E1C1>%ping%ms"
@@ -186,7 +223,7 @@ scoreboard:
     - "<dark_gray><st>                    </st></dark_gray>"
   lineas-partida:
     - "<dark_gray><st>                    </st></dark_gray>"
-    - "<gradient:#FFD1DC:#C1E1C1><bold>DUELO</bold></gradient> <#BFC4CC>(%estado%)"
+    - "<gradient:#FFD1DC:#C1E1C1><bold>DUELO</bold></gradient> <#BFC4CC>(%modo%)"
     - ""
     - "<#BFC4CC>Kit: <#FFD1DC>%kit%"
     - "<#BFC4CC>Arena: <#E8E8F0>%arena%"

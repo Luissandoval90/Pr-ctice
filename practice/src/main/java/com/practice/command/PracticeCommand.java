@@ -18,7 +18,7 @@ import java.util.List;
 public final class PracticeCommand extends BaseCommand {
 
     private static final List<String> SUBS = List.of("reload", "setspawn", "spawn", "fly", "elo", "stats",
-            "save", "info", "arenas", "clearchat", "build");
+            "save", "info", "arenas", "clearchat", "build", "temporada", "monedas", "holo");
 
     public PracticeCommand(PracticePlugin plugin) {
         super(plugin);
@@ -151,6 +151,54 @@ public final class PracticeCommand extends BaseCommand {
                             ? org.bukkit.GameMode.ADVENTURE : org.bukkit.GameMode.CREATIVE);
                     send(sender, "generales.volando", "estado", player.getGameMode().name());
                 }
+            }
+            case "temporada", "season" -> {
+                if (!hasPermission(sender, "practice.admin")) {
+                    return true;
+                }
+                if (args.length < 2 || !args[1].equalsIgnoreCase("reset")) {
+                    usage(sender, "/practice temporada reset");
+                    return true;
+                }
+                int affected = this.plugin.profiles().resetSeason();
+                Bukkit.broadcast(Cc.mm("<gradient:#FFD1DC:#B0E0E6><bold>Nueva temporada</bold></gradient> <#BFC4CC>El ELO de <#FFF5BA>"
+                        + affected + " <#BFC4CC>jugadores vuelve a <#E8E8F0>" + this.plugin.settings().eloStart));
+            }
+            case "monedas", "coins" -> {
+                if (!hasPermission(sender, "practice.admin")) {
+                    return true;
+                }
+                if (args.length < 3) {
+                    usage(sender, "/practice monedas <jugador> <cantidad>");
+                    return true;
+                }
+                com.practice.model.PlayerProfile profile = this.plugin.profiles().offline(args[1]);
+                if (profile == null) {
+                    send(sender, "generales.jugador-no-encontrado");
+                    return true;
+                }
+                try {
+                    int amount = Integer.parseInt(args[2]);
+                    if (args.length >= 4 && args[3].equalsIgnoreCase("add")) {
+                        profile.addCoins(amount);
+                    } else {
+                        profile.coins(amount);
+                    }
+                    this.plugin.profiles().markDirty();
+                    sender.sendMessage(Cc.mm("<#C1E1C1>Monedas de <#FFD1DC>" + profile.name() + " <#C1E1C1>: <#FFF5BA>" + profile.coins()));
+                } catch (NumberFormatException exception) {
+                    usage(sender, "/practice monedas <jugador> <cantidad>");
+                }
+            }
+            case "holo" -> {
+                if (!hasPermission(sender, "practice.admin")) {
+                    return true;
+                }
+                if (!(sender instanceof Player player)) {
+                    return true;
+                }
+                this.plugin.holograms().anchor(player.getLocation().add(0, 2.2D, 0));
+                sender.sendMessage(Cc.mm("<#C1E1C1>Holograma de clasificacion colocado."));
             }
             case "clearchat" -> {
                 if (!hasPermission(sender, "practice.staff")) {

@@ -67,6 +67,34 @@ public final class ProfileManager {
                 profile.ffaDeaths(this.data.getInt("jugadores." + key + ".ffa-muertes", 0));
                 profile.ffaBestStreak(this.data.getInt("jugadores." + key + ".ffa-mejor-racha", 0));
                 profile.playtimeMillis(this.data.getLong("jugadores." + key + ".tiempo", 0L));
+                profile.coins(this.data.getInt("jugadores." + key + ".monedas", 0));
+                profile.seasonWins(this.data.getInt("jugadores." + key + ".temporada-victorias", 0));
+                profile.seasonLosses(this.data.getInt("jugadores." + key + ".temporada-derrotas", 0));
+                profile.killEffect(this.data.getString("jugadores." + key + ".efecto-kill", "ninguno"));
+                profile.winEffect(this.data.getString("jugadores." + key + ".efecto-victoria", "ninguno"));
+                profile.showBoard(this.data.getBoolean("jugadores." + key + ".ajuste-scoreboard", true));
+                profile.duelRequests(this.data.getBoolean("jugadores." + key + ".ajuste-duelos", true));
+                profile.partyInvites(this.data.getBoolean("jugadores." + key + ".ajuste-party", true));
+                profile.allowSpectators(this.data.getBoolean("jugadores." + key + ".ajuste-espectadores", true));
+                profile.personalSounds(this.data.getBoolean("jugadores." + key + ".ajuste-sonidos", true));
+                profile.challengeDay(this.data.getString("jugadores." + key + ".desafio-dia", ""));
+                if (this.data.isConfigurationSection("jugadores." + key + ".desafios")) {
+                    for (String challenge : this.data.getConfigurationSection("jugadores." + key + ".desafios").getKeys(false)) {
+                        profile.challengeProgress(challenge, this.data.getInt("jugadores." + key + ".desafios." + challenge, 0));
+                    }
+                }
+                for (String claimed : this.data.getStringList("jugadores." + key + ".desafios-reclamados")) {
+                    profile.challengeClaimed().add(claimed);
+                }
+                for (String friend : this.data.getStringList("jugadores." + key + ".amigos")) {
+                    profile.friends().add(friend);
+                }
+                for (String line : this.data.getStringList("jugadores." + key + ".historial")) {
+                    com.practice.model.MatchRecord record = com.practice.model.MatchRecord.decode(line);
+                    if (record != null) {
+                        profile.history().add(record);
+                    }
+                }
                 if (this.data.isConfigurationSection("jugadores." + key + ".kits")) {
                     for (String kit : this.data.getConfigurationSection("jugadores." + key + ".kits").getKeys(false)) {
                         int[] record = profile.kitRecord(kit);
@@ -147,6 +175,11 @@ public final class ProfileManager {
             return;
         }
         this.dirty = false;
+        YamlConfiguration snapshot = snapshot();
+        this.plugin.getServer().getScheduler().runTaskAsynchronously(this.plugin, () -> write(snapshot));
+    }
+
+    private YamlConfiguration snapshot() {
         YamlConfiguration snapshot = new YamlConfiguration();
         for (PlayerProfile profile : this.profiles.values()) {
             String path = "jugadores." + profile.uuid() + ".";
@@ -163,6 +196,27 @@ public final class ProfileManager {
             snapshot.set(path + "ffa-muertes", profile.ffaDeaths());
             snapshot.set(path + "ffa-mejor-racha", profile.ffaBestStreak());
             snapshot.set(path + "tiempo", profile.playtimeMillis());
+            snapshot.set(path + "monedas", profile.coins());
+            snapshot.set(path + "temporada-victorias", profile.seasonWins());
+            snapshot.set(path + "temporada-derrotas", profile.seasonLosses());
+            snapshot.set(path + "efecto-kill", profile.killEffect());
+            snapshot.set(path + "efecto-victoria", profile.winEffect());
+            snapshot.set(path + "ajuste-scoreboard", profile.showBoard());
+            snapshot.set(path + "ajuste-duelos", profile.duelRequests());
+            snapshot.set(path + "ajuste-party", profile.partyInvites());
+            snapshot.set(path + "ajuste-espectadores", profile.allowSpectators());
+            snapshot.set(path + "ajuste-sonidos", profile.personalSounds());
+            snapshot.set(path + "desafio-dia", profile.challengeDay());
+            for (java.util.Map.Entry<String, Integer> challenge : profile.challengeProgress().entrySet()) {
+                snapshot.set(path + "desafios." + challenge.getKey(), challenge.getValue());
+            }
+            snapshot.set(path + "desafios-reclamados", new java.util.ArrayList<>(profile.challengeClaimed()));
+            snapshot.set(path + "amigos", new java.util.ArrayList<>(profile.friends()));
+            java.util.List<String> history = new java.util.ArrayList<>(profile.history().size());
+            for (com.practice.model.MatchRecord record : profile.history()) {
+                history.add(record.encode());
+            }
+            snapshot.set(path + "historial", history);
             for (Map.Entry<String, int[]> entry : profile.kitRecords().entrySet()) {
                 String kitPath = path + "kits." + entry.getKey() + ".";
                 snapshot.set(kitPath + "victorias", entry.getValue()[0]);
@@ -170,23 +224,37 @@ public final class ProfileManager {
                 snapshot.set(kitPath + "kills", entry.getValue()[2]);
             }
         }
-        this.plugin.getServer().getScheduler().runTaskAsynchronously(this.plugin, () -> {
-            try {
-                File parent = this.file.getParentFile();
-                if (parent != null && !parent.exists()) {
-                    parent.mkdirs();
-                }
-                snapshot.save(this.file);
-            } catch (IOException exception) {
-                this.plugin.getLogger().warning("No se pudieron guardar las estadisticas: " + exception.getMessage());
-            }
-        });
+        return snapshot;
     }
 
-    /** Guardado sincrono (solo en el apagado del servidor). */
+    private void write(YamlConfiguration snapshot) {
+        try {
+            File parent = this.file.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            snapshot.save(this.file);
+        } catch (IOException exception) {
+            this.plugin.getLogger().warning("No se pudieron guardar las estadisticas: " + exception.getMessage());
+        }
+    }
+
+    /** Guardado sincrono (solo en el apagado del servidor, cuando el scheduler ya no corre). */
     public void saveSync() {
+        this.dirty = false;
+        write(snapshot());
+    }
+
+    /** Reinicia el ELO de la temporada sin borrar el historial de por vida. */
+    public int resetSeason() {
+        for (PlayerProfile profile : this.profiles.values()) {
+            profile.elo(this.plugin.settings().eloStart);
+            profile.seasonWins(0);
+            profile.seasonLosses(0);
+            profile.streak(0);
+        }
         this.dirty = true;
-        this.saveAsync();
+        return this.profiles.size();
     }
 
     public List<Leaderboard.Entry> top(Leaderboard.Type type, int limit) {
